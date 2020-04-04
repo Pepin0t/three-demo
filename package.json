@@ -1,0 +1,41 @@
+{
+  "name": "playground",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start:dev": "pm2 start ecosystem.config.js --watch",
+    "start:prod": "pm2 start ecosystem.config.js --env production",
+    "dev": "next -p 3004",
+    "start": "next start -p 3004",
+    "lint": "(eslint src --ext js,jsx --color) & (stylelint **/*.less --color)",
+    "build": "rm -rf ./.next && next build"
+  },
+  "keywords": [],
+  "author": "Pepinot",
+  "license": "ISC",
+  "dependencies": {
+    "@zeit/next-less": "^1.0.1",
+    "express": "^4.17.1",
+    "less": "^3.11.1",
+    "next": "^9.3.0",
+    "prop-types": "^15.7.2",
+    "react": "^16.13.0",
+    "react-dom": "^16.13.0",
+    "react-spring": "^8.0.27",
+    "react-three-fiber": "^4.0.20",
+    "three": "^0.114.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.1.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-react": "^7.19.0",
+    "eslint-plugin-react-hooks": "^2.5.0",
+    "nodemon": "^2.0.2",
+    "stylelint": "^13.2.1",
+    "stylelint-config-standard": "^20.0.0"
+  }
+}
