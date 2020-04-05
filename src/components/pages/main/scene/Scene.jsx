@@ -61,20 +61,20 @@ function Render(props) {
   }, [setScene]);
 
   return (
-    <>
+    <React.Fragment>
       <animated.scene
         position={scene.position}
       >
-        <Extrude
+       <Extrude
           options={options}
           running={running}
         />
-        <Rings
+{/*        <Rings
           options={options}
           centerClicked={centerClicked}
           running={running}
           setRunning={setRunning}
-        />
+        />*/}
         <Center
           radius={radius}
           centerClicked={centerClicked}
@@ -82,7 +82,7 @@ function Render(props) {
           setRunning={setRunning}
         />
       </animated.scene>
-    </>
+    </React.Fragment>
   );
 }
 

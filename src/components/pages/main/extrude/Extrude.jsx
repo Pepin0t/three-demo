@@ -11,7 +11,7 @@ import * as THREE from 'three';
 
 import colors from '~/constants/colors';
 
-const MESH_COLOR = colors.WHITE;
+const MESH_COLOR = 0xcccccc;
 const LINE_COLOR = colors.WHITE;
 
 function degToRad(value) {
@@ -140,7 +140,7 @@ function Render(props) {
                   />
                 </line>
                 <line
-                  position={[-0.01, 0, -1.02]}
+                  position={[-0.01, 0, -0.52]}
                   scale={[1.001, 1.001, 1]}
                   geometry={geometry.buffer}
                 >
@@ -150,7 +150,7 @@ function Render(props) {
                   />
                 </line>
                 <mesh
-                  position={[0, 0, -1.01]}
+                  position={[0, 0, -0.51]}
                 >
                   <extrudeBufferGeometry
                     attach="geometry"
@@ -158,7 +158,7 @@ function Render(props) {
                       geometry.shape,
                       {
                         steps: 1,
-                        depth: 1,
+                        depth: 0.5,
                         bevelEnabled: false,
                       },
                     ]}
@@ -197,7 +197,7 @@ function Control(props) {
   ), []);
 
   const visibility = useSpring({
-    position: running ? [0, 0, 0] : [0, 0, 100],
+    position: !running ? [0, 0, 0] : [0, 0, 100],
     immediate: true,
   });
 

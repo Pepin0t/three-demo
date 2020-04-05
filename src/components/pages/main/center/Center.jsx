@@ -324,7 +324,7 @@ function Control(props) {
       loop();
     },
     config: {
-      duration: 20000,
+      duration: 10000,
     },
     reset: true,
   }));
@@ -356,7 +356,7 @@ function Control(props) {
       setRunning(false);
     } else {
       setTimeout(() => {
-        setRunning(true);
+        // setRunning(true);
       }, 1500);
 
       setCenter(() => ({

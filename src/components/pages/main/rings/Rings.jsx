@@ -1,14 +1,22 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
 import * as THREE from 'three';
+
+import { useFrame } from 'react-three-fiber';
 
 import colors from '~/constants/colors';
 
 const MESH_COLOR = colors.WHITE;
 const LINE_COLOR = colors.WHITE;
 
+const object = new THREE.Object3D();
+const _color = new THREE.Color()
+
 function Render(props) {
+  const { animated, interpolate } = require('react-spring/three');
+  const { BufferGeometryUtils } = require('three/examples/jsm/utils/BufferGeometryUtils');
+
   const {
     visibility,
     position,
@@ -23,19 +31,10 @@ function Render(props) {
     elements,
   } = options;
 
-  const { BufferGeometryUtils } = useMemo(() => (
-    require('three/examples/jsm/utils/BufferGeometryUtils')
-  ), []);
 
   const innerRadius = radius;
   const outerRadius = innerRadius + thickness;
 
-  const {
-    animated,
-    interpolate,
-  } = useMemo(() => (
-    require('react-spring/three')
-  ), []);
 
   const { shape, buffer } = useMemo(() => {
     const segments = 6;
@@ -91,8 +90,9 @@ function Render(props) {
     const line = new THREE.Shape();
     const lineGeometry = new THREE.BufferGeometry();
 
-    // TODO
-    const height = (thickness ** layers);
+    const height = new Array(layers).fill(thickness).reduce((acc, el, i) => (
+      acc + el * ((outerRadius / innerRadius) ** i)
+    ), 0);
 
     line.moveTo((innerRadius * 2) + height, 0);
     line.lineTo(innerRadius, 0);
@@ -112,18 +112,21 @@ function Render(props) {
     return {
       mergedLinesGeometry,
     };
-  }, [innerRadius, thickness, elements, layers, BufferGeometryUtils]);
+  }, [innerRadius, outerRadius, thickness, elements, layers, BufferGeometryUtils]);
 
   const { mergedConesGeometry: cones } = useMemo(() => {
-    const H = 80;
-    const R = 2;
-    const r = R - ((H - innerRadius) / H) * R;
+    const H = new Array(layers).fill(thickness).reduce((acc, el, i) => (
+      acc + el * ((outerRadius / innerRadius) ** i)
+    ), innerRadius);
+
+    const R = 10;
+    const r = R - (H / (H + innerRadius)) * R;
 
     const coneGeometry = new THREE.CylinderBufferGeometry(r, R, H, 3);
 
     coneGeometry.rotateZ(Math.PI / 2);
-    coneGeometry.translate((H / 2) + innerRadius + 0.02, 0, 0);
-    coneGeometry.rotateY(Math.atan(R / H));
+    coneGeometry.translate((H / 2) + innerRadius - 0.2, 0, 0);
+    coneGeometry.rotateY(Math.atan(R / (H + innerRadius)));
 
     const coneGeometries = new Array(elements).fill().map((_, i) => {
       const cloneConeGeometry = coneGeometry.clone();
@@ -136,43 +139,75 @@ function Render(props) {
     return {
       mergedConesGeometry,
     };
-  }, [innerRadius, elements, BufferGeometryUtils]);
+  }, [innerRadius, outerRadius, layers, elements, thickness, BufferGeometryUtils]);
+
+  // --------------------------------------------
+  const instancedRef = useRef();
+  const attributeRef = useRef();
+  const roundLinesRef = useRef();
+
+  const colorArray = useMemo(() => {
+    const color = new Float32Array(layers * 3);
+
+    for (let i = 0; i < layers; i += 1) {
+      _color.set(0xcccccc);
+      _color.toArray(color, i * 3);
+    }
+
+    return color;
+  }, [layers]);
+
+  useFrame(() => {
+    const { count } = instancedRef.current;
+
+    const { x, y } = instancedRef.current.position;
+
+    const roundLines = roundLinesRef.current.children;
+
+    for (let i = 0; i < count; i += 1) {
+      const scale = (outerRadius / innerRadius) ** i;
+
+      let shiftX = x * i * 1.5;
+      let shiftY = y * i * 1.5;
+
+      const limit = i * 2;
+
+      // TODO
+      if (shiftX >= limit) shiftX = limit;
+      if (shiftX <= -limit) shiftX = -limit;
+
+      if (shiftY >= limit) shiftY = limit;
+      if (shiftY <= -limit) shiftY = -limit;
+
+      object.position.set(shiftX - x, shiftY - y, -0.51);
+      object.scale.set(scale, scale, 1);
+      object.updateMatrix();
+
+      instancedRef.current.setMatrixAt(i, object.matrix);
+
+      roundLines[i].position.set(shiftX, shiftY, 0);
+      roundLines[i].scale.set(scale, scale, 1);
+    }
+
+    instancedRef.current.instanceMatrix.needsUpdate = true;
+  });
 
   return (
     <animated.group
       name="rings"
       position={visibility}
     >
-      {
-        new Array(layers).fill().map((_, i) => {
-          const key = `layer-${i}`;
+      <group
+        ref={roundLinesRef}
+        name="round-lines"
+      >
+        {
+          new Array(layers).fill().map((_, i) => {
+            const key = `line-${i}`;
 
-          // if (i % 2 === 1) return null;
-
-          const scale = (outerRadius / innerRadius) ** i;
-
-          return (
-            <animated.group
-              key={key}
-              name="ring"
-              scale={[scale, scale, 1]}
-              position={interpolate([position], ([x, y]) => {
-                let shiftX = x * i;
-                let shiftY = y * i;
-
-                const limit = i * 0.8;
-
-                // TODO
-                if (shiftX >= limit) shiftX = limit;
-                if (shiftX <= -limit) shiftX = -limit;
-
-                if (shiftY >= limit) shiftY = limit;
-                if (shiftY <= -limit) shiftY = -limit;
-
-                return [shiftX, shiftY, 0];
-              })}
-            >
+            return (
               <line
+                key={key}
                 geometry={buffer.inner}
               >
                 <lineBasicMaterial
@@ -180,29 +215,38 @@ function Render(props) {
                   color={LINE_COLOR}
                 />
               </line>
-              <mesh
-                position={[0, 0, i > 0 ? -0.01 : -1.01]}
-              >
-                <extrudeBufferGeometry
-                  attach="geometry"
-                  args={[
-                    shape,
-                    {
-                      steps: 1,
-                      depth: i > 0 ? 0 : 1,
-                      bevelEnabled: false,
-                    },
-                  ]}
-                />
-                <meshStandardMaterial
-                  attach="material"
-                  color={MESH_COLOR}
-                />
-              </mesh>
-            </animated.group>
-          );
-        })
-      }
+            );
+          })
+        }
+      </group>
+      <animated.instancedMesh
+        name="ring"
+        ref={instancedRef}
+        args={[null, null, layers]}
+        position={position}
+      >
+        <extrudeBufferGeometry
+          attach="geometry"
+          args={[
+            shape,
+            {
+              steps: 1,
+              depth: 0.5,
+              bevelEnabled: false,
+            },
+          ]}
+        >
+          <instancedBufferAttribute
+            ref={attributeRef}
+            attachObject={['attributes', 'color']}
+            args={[colorArray, 3]}
+          />
+        </extrudeBufferGeometry>
+        <meshPhongMaterial
+          attach="material"
+          vertexColors={THREE.VertexColors}
+        />
+      </animated.instancedMesh>
       <line
         name="radial-lines"
         geometry={lines}
@@ -215,10 +259,10 @@ function Render(props) {
       <animated.mesh
         name="triangle-cones"
         rotation={interpolate([rotation], ([x, y]) => {
-          let xAngle = y / 50;
-          let yAngle = x / -50;
+          let xAngle = y / 25;
+          let yAngle = x / -25;
 
-          const limit = 0.015;
+          const limit = 0.030;
 
           if (xAngle >= limit) xAngle = limit;
           if (xAngle <= -limit) xAngle = -limit;
