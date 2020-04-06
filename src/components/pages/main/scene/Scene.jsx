@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Suspense,
+} from 'react';
 
-import * as THREE from 'three';
+// import * as THREE from 'three';
 
-import { Canvas, useThree } from 'react-three-fiber';
+import { Canvas, useThree, useFrame } from 'react-three-fiber';
 
 import Center from '~/components/pages/main/center/Center';
 import Rings from '~/components/pages/main/rings/Rings';
@@ -27,7 +33,10 @@ function Controls() {
 }
 
 function Render(props) {
-  const { useSpring, animated, config } = useMemo(() => (
+  const { options } = props;
+  const { radius } = options;
+
+  const { useSpring, animated, interpolate, config } = useMemo(() => (
     require('react-spring/three')
   ), []);
 
@@ -39,8 +48,41 @@ function Render(props) {
     config: config.molasses,
   }));
 
-  const { options } = props;
-  const { radius } = options;
+  const [cameraParameters, setCameraParameters] = useSpring(() => ({
+    position: [0, 0, 35],
+    rotation: [0, 0, 0],
+    fov: 75,
+  }));
+
+  useEffect(() => {
+    if (running) {
+      setCameraParameters({
+        to: async (next) => {
+          await next({
+            position: [5, 0, 35],
+            rotation: [0, 0, -0.2],
+            fov: 85,
+            config: {
+              // ...config.slow,
+              // friction: 60,
+            },
+          });
+
+          await next({
+            position: [-5, 0, -120],
+            rotation: [0, Math.PI, Math.PI / 8],
+            fov: 50,
+            config: {
+              mass: 12,
+              tension: 4,
+              friction: 20,
+              precision: 0.00001,
+            },
+          });
+        },
+      });
+    }
+  }, [running, setCameraParameters]);
 
   useEffect(() => {
     function handleMouseMove({ offsetX, offsetY }) {
@@ -60,21 +102,31 @@ function Render(props) {
     };
   }, [setScene]);
 
+  // useFrame(({ camera }) => {
+  //   if (running) {
+  //     camera.position.set(...cameraParameters.position.getValue());
+  //     camera.rotation.set(...cameraParameters.rotation.getValue());
+  //     camera.fov = cameraParameters.fov.getValue();
+
+  //     camera.updateProjectionMatrix();
+  //   }
+  // });
+
   return (
     <React.Fragment>
       <animated.scene
         position={scene.position}
       >
-       <Extrude
+        <Extrude
           options={options}
           running={running}
         />
-{/*        <Rings
+        <Rings
           options={options}
           centerClicked={centerClicked}
           running={running}
           setRunning={setRunning}
-        />*/}
+        />
         <Center
           radius={radius}
           centerClicked={centerClicked}
@@ -92,9 +144,9 @@ function Scene() {
 
   const [options] = useState({
     radius: 12,
-    thickness: 2,
+    thickness: 1.8,
     elements: 32,
-    layers: 12,
+    layers: 16,
   });
 
   const canvas = useRef();
@@ -144,7 +196,7 @@ function Scene() {
 
           shadowMap
           pixelRatio={pixelRatio}
-          camera={{ position: [0, 0, 35] }}
+          camera={{ position: [0, 0, 35], fov: 75 }}
           onCreated={({ gl }) => {
             // gl.toneMapping = THREE.Uncharted2ToneMapping;
             // gl.setClearColor(new THREE.Color('#020207'));
@@ -157,6 +209,11 @@ function Scene() {
             castShadow
             position={[0, 0, 20]}
             color={0xbbbbbb}
+            intensity={0.7}
+          />
+          <directionalLight
+            position={[0, 0, -30]}
+            color={0x55aacc}
             intensity={0.7}
           />
           <hemisphereLight position={[0, 0, 30]} args={[0x55aacc, 0x999999, 0.4]} />

@@ -8,6 +8,7 @@ import React, {
 import PropTypes from 'prop-types';
 
 import * as THREE from 'three';
+import { useFrame } from 'react-three-fiber';
 
 import colors from '~/constants/colors';
 
@@ -17,6 +18,9 @@ const LINE_COLOR = colors.WHITE;
 function degToRad(value) {
   return THREE.MathUtils.degToRad(value);
 }
+
+const _object3d = new THREE.Object3D();
+const _color = new THREE.Color();
 
 function Render(props) {
   const {
@@ -99,6 +103,80 @@ function Render(props) {
     };
   }, [radius, elements, thickness]);
 
+  const instancedRef = useRef();
+
+  const colorArray = useMemo(() => {
+    const color = new Float32Array(layers * elements * 3);
+
+    for (let i = 0; i < layers * elements; i += 1) {
+      _color.set(MESH_COLOR);
+      _color.toArray(color, i * 3);
+    }
+
+    return color;
+  }, [layers, elements]);
+
+  const { randoms, scales } = useMemo(() => {
+    const _randoms = new Float32Array(layers * elements);
+    const _scales = new Float32Array(layers);
+
+    let index = -1;
+    for (let i = 0; i < layers; i += 1) {
+      const scale = ((radius + thickness) / radius) ** i;
+
+      _scales[i] = scale;
+
+      for (let j = 0; j < elements; j += 1) {
+        index += 1;
+
+        _randoms[index] = Math.random();
+      }
+    }
+
+    return {
+      randoms: _randoms,
+      scales: _scales,
+    };
+  }, [layers, elements, radius, thickness]);
+
+  useFrame(() => {
+    let id = -1;
+
+    for (let i = 0; i < layers; i += 1) {
+      const scale = scales[i];
+
+      const ranges = (k) => {
+        const start = (1 / layers) * i;
+        const end = start + (1 / layers) / 2;
+
+        return {
+          range: [0, start, end, 1],
+          output: [0, 0, 4, 4 * randoms[k]],
+        };
+      };
+
+      for (let j = 0; j < elements; j += 1) {
+        id += 1;
+
+        const positions = interpolate(
+          [position],
+          ranges(id),
+        ).interpolate((z) => [0, 0, z * (i + 1)]);
+
+        _object3d.position.set(...positions.getValue());
+        _object3d.rotation.set(0, 0, degToRad((360 / elements) * j));
+        _object3d.scale.set(scale, scale, 1);
+
+        _object3d.updateMatrix();
+
+        instancedRef.current.setMatrixAt(id, _object3d.matrix);
+      }
+    }
+
+    // if ??
+    instancedRef.current.instanceMatrix.needsUpdate = true;
+  });
+
   return (
     <animated.group
       name="blocks"
@@ -106,73 +184,51 @@ function Render(props) {
       position={visibility}
     >
       {
-        new Array(layers).fill().map((_, i, arr) => {
-          const scale = ((radius + thickness) / radius) ** i;
-
-          const ranges = () => {
-            const start = (1 / arr.length) * i;
-            const end = start + (1 / arr.length) / 2;
-
-            return {
-              range: [0, start, end, 1],
-              output: [0, 0, 4, 4 * Math.random()],
-            };
-          };
-
-          return new Array(elements).fill().map((__, j) => {
-            const key = `element-${i}-${j}`;
-
-            return (
-              <animated.group
-                key={key}
-                position={position
-                  .interpolate(ranges())
-                  .interpolate((x) => [0, 0, x * (i + 1)])}
-                rotation={[0, 0, degToRad((360 / elements) * j)]}
-                scale={[scale, scale, 1]}
-              >
-                <line
-                  geometry={geometry.buffer}
-                >
-                  <lineBasicMaterial
-                    attach="material"
-                    color={LINE_COLOR}
-                  />
-                </line>
-                <line
-                  position={[-0.01, 0, -0.52]}
-                  scale={[1.001, 1.001, 1]}
-                  geometry={geometry.buffer}
-                >
-                  <lineBasicMaterial
-                    attach="material"
-                    color={LINE_COLOR}
-                  />
-                </line>
-                <mesh
-                  position={[0, 0, -0.51]}
-                >
-                  <extrudeBufferGeometry
-                    attach="geometry"
-                    args={[
-                      geometry.shape,
-                      {
-                        steps: 1,
-                        depth: 0.5,
-                        bevelEnabled: false,
-                      },
-                    ]}
-                  />
-                  <meshLambertMaterial
-                    attach="material"
-                    color={MESH_COLOR}
-                  />
-                </mesh>
-              </animated.group>
-            );
-          });
-        })
+      // <line
+      //   geometry={geometry.buffer}
+      // >
+      //   <lineBasicMaterial
+      //     attach="material"
+      //     color={LINE_COLOR}
+      //   />
+      // </line>
+      // <line
+      //   position={[-0.01, 0, -0.52]}
+      //   scale={[1.001, 1.001, 1]}
+      //   geometry={geometry.buffer}
+      // >
+      //   <lineBasicMaterial
+      //     attach="material"
+      //     color={LINE_COLOR}
+      //   />
+      // </line>
       }
+      <instancedMesh
+        ref={instancedRef}
+        args={[null, null, layers * elements]}
+      >
+        <extrudeBufferGeometry
+          attach="geometry"
+          args={[
+            geometry.shape,
+            {
+              steps: 1,
+              depth: 2,
+              bevelEnabled: false,
+            },
+          ]}
+        >
+          <instancedBufferAttribute
+            // ref={attributeRef}
+            attachObject={['attributes', 'color']}
+            args={[colorArray, 3]}
+          />
+        </extrudeBufferGeometry>
+        <meshPhongMaterial
+          attach="material"
+          vertexColors={THREE.VertexColors}
+        />
+      </instancedMesh>
     </animated.group>
   );
 }
@@ -197,23 +253,45 @@ function Control(props) {
   ), []);
 
   const visibility = useSpring({
-    position: !running ? [0, 0, 0] : [0, 0, 100],
+    position: running ? [0, 0, -2.01] : [0, 0, 100],
     immediate: true,
   });
 
-  const layers = useSpring({
-    position: running ? 1 : 0,
+  const [layers, setLayers] = useSpring(() => ({
+    position: 0,
     config: {
       friction: 50,
       mass: 10,
       tension: 150,
     },
-  });
+  }));
 
   const camera = useSpring({
     rotation: running ? 1 : 0,
     config: config.wobbly,
   });
+
+  useEffect(() => {
+    if (running) {
+      setLayers({
+        to: async (next) => {
+          await next({
+            position: 1,
+          });
+
+          await next({
+            position: 1.3,
+            config: {
+              mass: 3,
+              tension: 5,
+              friction: 10,
+              precision: 0.001,
+            },
+          });
+        },
+      });
+    }
+  }, [running, setLayers]);
 
   return (
     <MemoizedRender

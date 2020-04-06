@@ -356,7 +356,7 @@ function Control(props) {
       setRunning(false);
     } else {
       setTimeout(() => {
-        // setRunning(true);
+        setRunning(true);
       }, 1500);
 
       setCenter(() => ({

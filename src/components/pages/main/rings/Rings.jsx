@@ -11,7 +11,7 @@ const MESH_COLOR = colors.WHITE;
 const LINE_COLOR = colors.WHITE;
 
 const object = new THREE.Object3D();
-const _color = new THREE.Color()
+const _color = new THREE.Color();
 
 function Render(props) {
   const { animated, interpolate } = require('react-spring/three');
@@ -119,7 +119,7 @@ function Render(props) {
       acc + el * ((outerRadius / innerRadius) ** i)
     ), innerRadius);
 
-    const R = 10;
+    const R = 15;
     const r = R - (H / (H + innerRadius)) * R;
 
     const coneGeometry = new THREE.CylinderBufferGeometry(r, R, H, 3);
@@ -179,7 +179,7 @@ function Render(props) {
       if (shiftY >= limit) shiftY = limit;
       if (shiftY <= -limit) shiftY = -limit;
 
-      object.position.set(shiftX - x, shiftY - y, -0.51);
+      object.position.set(shiftX - x, shiftY - y, -2.01);
       object.scale.set(scale, scale, 1);
       object.updateMatrix();
 
@@ -204,6 +204,8 @@ function Render(props) {
         {
           new Array(layers).fill().map((_, i) => {
             const key = `line-${i}`;
+
+            // USE INSTANCED SOMETHING... !!!
 
             return (
               <line
@@ -231,7 +233,7 @@ function Render(props) {
             shape,
             {
               steps: 1,
-              depth: 0.5,
+              depth: 2,
               bevelEnabled: false,
             },
           ]}
@@ -310,7 +312,7 @@ function Control(props) {
   ), []);
 
   const visibility = useSpring({
-    position: running ? [0, 0, 100] : [0, 0, 0],
+    position: running ? [0, 1000, 0] : [0, 0, 0],
     immediate: true,
   });
 
@@ -367,11 +369,6 @@ function Control(props) {
       setCones({
         rotation: [0, 0, 0],
         config: { duration: 200 },
-        onRest() {
-          setTimeout(() => {
-            // setRunning(true);
-          }, 0);
-        },
       });
     } else {
       document.addEventListener('mousemove', handleMouseMove);

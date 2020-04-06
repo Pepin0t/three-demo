@@ -8,6 +8,7 @@ module.exports = {
   'rules': {
     'global-require': 0,
     'no-console': 0,
+    'no-underscore-dangle': 0,
     'react/react-in-jsx-scope': 0,
     'react/jsx-filename-extension' : 0,
     'react/jsx-props-no-spreading' : 0,
