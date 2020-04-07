@@ -255,11 +255,12 @@ function Render(props) {
       >
         <lineBasicMaterial
           attach="material"
-          color={LINE_COLOR}
+          color={0xeeeeee}
         />
       </line>
       <animated.mesh
         name="triangle-cones"
+        position={[0, 0, -0.1]}
         rotation={interpolate([rotation], ([x, y]) => {
           let xAngle = y / 25;
           let yAngle = x / -25;
@@ -278,7 +279,7 @@ function Render(props) {
       >
         <meshBasicMaterial
           attach="material"
-          color={LINE_COLOR}
+          color={0xffffcc}
         />
       </animated.mesh>
     </animated.group>
@@ -336,6 +337,8 @@ function Control(props) {
     const screenHeight = window.innerHeight;
 
     function handleMouseMove({ offsetX, offsetY }) {
+      // use size from useThree
+
       const x = ((screenWidth / 2) - offsetX) / 1000;
       const y = ((screenHeight / 2) - offsetY) / -1000;
 

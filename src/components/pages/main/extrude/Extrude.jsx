@@ -279,15 +279,15 @@ function Control(props) {
             position: 1,
           });
 
-          await next({
-            position: 1.3,
-            config: {
-              mass: 3,
-              tension: 5,
-              friction: 10,
-              precision: 0.001,
-            },
-          });
+          // await next({
+          //   position: 0.2,
+          //   config: {
+          //     mass: 3,
+          //     tension: 5,
+          //     friction: 10,
+          //     precision: 0.001,
+          //   },
+          // });
         },
       });
     }

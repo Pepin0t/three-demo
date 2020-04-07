@@ -1,6 +1,6 @@
 import React, {
   // useState,
-  // useEffect,
+  useEffect,
   // useRef,
   useMemo,
 } from 'react';
@@ -8,7 +8,7 @@ import React, {
 import PropTypes from 'prop-types';
 
 import * as THREE from 'three';
-import { useLoader } from 'react-three-fiber';
+import { useLoader, extend } from 'react-three-fiber';
 
 import colors from '~/constants/colors';
 
@@ -17,6 +17,8 @@ async function delay(value) {
 }
 
 function Render(props) {
+  const { animated, interpolate } = require('react-spring/three');
+
   const {
     radius,
     color,
@@ -24,10 +26,6 @@ function Render(props) {
     centerParameters,
     buttonParameters,
   } = props;
-
-  const { animated, interpolate } = useMemo(() => (
-    require('react-spring/three')
-  ), []);
 
   const font = useMemo(() => {
     const typeface = require('three/examples/fonts/gentilis_bold.typeface.json');
@@ -227,7 +225,7 @@ function Render(props) {
             />
             <meshBasicMaterial
               attach="material"
-              color="#fff"
+              color={0xeeeeee}
             />
           </mesh>
         </animated.group>

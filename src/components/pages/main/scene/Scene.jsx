@@ -6,13 +6,14 @@ import React, {
   Suspense,
 } from 'react';
 
-// import * as THREE from 'three';
+import * as THREE from 'three';
 
-import { Canvas, useThree, useFrame } from 'react-three-fiber';
+import { Canvas, useThree } from 'react-three-fiber';
 
 import Center from '~/components/pages/main/center/Center';
 import Rings from '~/components/pages/main/rings/Rings';
 import Extrude from '~/components/pages/main/extrude/Extrude';
+import Effects from '~/components/pages/main/effects/Effects';
 
 import styles from './Scene.less';
 
@@ -36,7 +37,7 @@ function Render(props) {
   const { options } = props;
   const { radius } = options;
 
-  const { useSpring, animated, interpolate, config } = useMemo(() => (
+  const { useSpring, animated, config } = useMemo(() => (
     require('react-spring/three')
   ), []);
 
@@ -133,6 +134,7 @@ function Render(props) {
           setCenterClicked={setCenterClicked}
           setRunning={setRunning}
         />
+        <Effects />
       </animated.scene>
     </React.Fragment>
   );
@@ -195,16 +197,17 @@ function Scene() {
           onWheel={undefined}
 
           shadowMap
+          gl={{ antialias: false, alpha: false }}
           pixelRatio={pixelRatio}
           camera={{ position: [0, 0, 35], fov: 75 }}
           onCreated={({ gl }) => {
-            // gl.toneMapping = THREE.Uncharted2ToneMapping;
-            // gl.setClearColor(new THREE.Color('#020207'));
+            gl.toneMapping = THREE.Uncharted2ToneMapping;
+            gl.setClearColor(new THREE.Color(0xeeeeee));
 
             setLoading(false);
           }}
         >
-          <Controls />
+          {/*<Controls />*/}
           <directionalLight
             castShadow
             position={[0, 0, 20]}
